@@ -5,3 +5,8 @@ In the default configuration, the `Zeek Intelligence Framework <https://docs.zee
 This script adds a new Intel::WILDCARD_DOMAIN type that matches on the base domain name, regardless of what subdomain may be prepended to it. 
 ( e.g.: "example.com" would match "example.com", "foo.example.com", "foo.bar.example.com", etc. )
 
+Installation
+____________
+
+``zkg install jbaggs/wildcard-domain``
+
