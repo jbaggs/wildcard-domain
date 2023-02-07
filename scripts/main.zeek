@@ -50,7 +50,7 @@ function check_wildcard_domain(indicator: string):  PatternMatchResult
 	local lower_indicator = to_lower(indicator);
 	local p1 = set_to_regex(domains, "\\.(~~)$");
 	local p2 = set_to_regex(domains, "(~~)$");
-	local seen = match_pattern(lower_indicator ,p1);
+	local seen = match_pattern(lower_indicator, p1);
 	if ( seen$matched )
 		{
 		seen$str = sub(seen$str, /\./, "");
@@ -58,7 +58,7 @@ function check_wildcard_domain(indicator: string):  PatternMatchResult
 		}
 	else
 		{
-		seen = match_pattern(lower_indicator ,p2);
+		seen = match_pattern(lower_indicator, p2);
 		if (seen$matched && lower_indicator != seen$str )
 			{
 			seen$matched = F;
