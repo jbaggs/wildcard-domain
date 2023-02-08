@@ -1,5 +1,5 @@
 [package]
-description = 
+description = This script adds a new Intel::WILDCARD_DOMAIN type that matches on the base domain name, regardless of what subdomain may be prepended to it.
 tags = zeek scripting, intel
 script_dir = scripts
 depends = 
