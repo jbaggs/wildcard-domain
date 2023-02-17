@@ -48,24 +48,20 @@ module WildcardDomainIntel;
 function check_wildcard_domain(indicator: string):  PatternMatchResult
 	{
 	local lower_indicator = to_lower(indicator);
-	local p1 = set_to_regex(domains, "\\.(~~)$");
-	local p2 = set_to_regex(domains, "(~~)$");
-	local seen = match_pattern(lower_indicator, p1);
-	if ( seen$matched )
+	local p = set_to_regex(domains, "\\.?(~~)$");
+	local seen = match_pattern(lower_indicator, p);
+	if ( seen$matched ) 
 		{
-		seen$str = sub(seen$str, /\./, "");
-		return seen;
-		}
-	else
-		{
-		seen = match_pattern(lower_indicator, p2);
-		if (seen$matched && lower_indicator != seen$str )
+		if ( starts_with(seen$str, ".") )
+			seen$str = sub(seen$str, /\./, "");
+
+		else if ( lower_indicator != seen$str )
 			{
 			seen$matched = F;
 			seen$str = "";
 			}
-		return seen;
 		}
+	return seen;
 	}
 
 event ssl_extension_server_name(c: connection, is_orig: bool, names: string_vec)
