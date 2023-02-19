@@ -16,8 +16,13 @@ export {
 
 module WildcardDomainIntel;
 
+
 export {
-	const domains: set[string] &redef;
+	global domains: set[string] &redef;
+	global wc_pattern: pattern = /GENERATED_FROM_INTEL_DATA/ &redef;
+	global pattern_defined: bool = F &redef; 
+	global update_scheduled: bool = F &redef; 
+	global update: event ();
 }
 
 module Intel;
@@ -29,6 +34,11 @@ event remove_indicator(item: Intel::Item)
 		# All intelligence is case insensitive at the moment.
 		local lower_indicator = to_lower(item$indicator);
 		delete WildcardDomainIntel::domains[lower_indicator];
+		if (WildcardDomainIntel::update_scheduled == F )
+			{
+			schedule (5sec) {WildcardDomainIntel::update()};
+			WildcardDomainIntel::update_scheduled = T;
+			}
 		}
 	}
 
@@ -39,17 +49,31 @@ event new_item(item: Intel::Item)
 		# All intelligence is case insensitive at the moment.
 		local lower_indicator = to_lower(item$indicator);
 		add WildcardDomainIntel::domains[lower_indicator];
+		if (WildcardDomainIntel::update_scheduled == F )
+			{
+			schedule (5sec) {WildcardDomainIntel::update()};
+			WildcardDomainIntel::update_scheduled = T;
+			}
 		}
 	
 	}
 
 module WildcardDomainIntel;
 
+event update ()
+	{
+	if ( |domains| > 0 )
+		{
+		WildcardDomainIntel::wc_pattern = set_to_regex(domains, "\\.?(~~)$");
+		pattern_defined = T;
+		}
+	WildcardDomainIntel::update_scheduled = F;
+	}
+
 function check_wildcard_domain(indicator: string):  PatternMatchResult
 	{
 	local lower_indicator = to_lower(indicator);
-	local p = set_to_regex(domains, "\\.?(~~)$");
-	local seen = match_pattern(lower_indicator, p);
+	local seen = match_pattern(lower_indicator, wc_pattern);
 	if ( seen$matched ) 
 		{
 		if ( starts_with(seen$str, ".") )
@@ -66,7 +90,7 @@ function check_wildcard_domain(indicator: string):  PatternMatchResult
 
 event ssl_extension_server_name(c: connection, is_orig: bool, names: string_vec)
 	{
-	if ( |domains| == 0 )
+	if ( |domains| == 0 || pattern_defined == F )
 		return;
 	if ( is_orig && c?$ssl && c$ssl?$server_name )
 		{
@@ -81,7 +105,7 @@ event ssl_extension_server_name(c: connection, is_orig: bool, names: string_vec)
 
 event ssl_established(c: connection)
 	{
-	if ( |domains| == 0 )
+	if ( |domains| == 0 || pattern_defined == F )
 		return;
 	if ( ! c$ssl?$cert_chain || |c$ssl$cert_chain| == 0 ||
 		! c$ssl$cert_chain[0]?$x509 )
@@ -101,7 +125,7 @@ event ssl_established(c: connection)
 
 event dns_request(c: connection, msg: dns_msg, query: string, qtype: count, qclass: count)
 	{
-	if ( |domains| == 0 )
+	if ( |domains| == 0 || pattern_defined == F )
 		return;
 	local seen = check_wildcard_domain(query);
 	if ( seen$matched )
@@ -113,7 +137,7 @@ event dns_request(c: connection, msg: dns_msg, query: string, qtype: count, qcla
 
 event http_header(c: connection, is_orig: bool, name: string, value: string)
 	{
-	if ( |domains| == 0 )
+	if ( |domains| == 0 || pattern_defined == F )
 		return;
 	if ( is_orig && name == "HOST" )
 		{
@@ -135,7 +159,7 @@ event http_header(c: connection, is_orig: bool, name: string, value: string)
 
 event x509_ext_subject_alternative_name(f: fa_file, ext: X509::SubjectAlternativeName)
 	{
-	if ( |domains| == 0 )
+	if ( |domains| == 0 || pattern_defined == F )
 		return;
 	if ( Intel::enable_x509_ext_subject_alternative_name && ext?$dns )
 		{
